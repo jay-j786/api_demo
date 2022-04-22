@@ -5,4 +5,8 @@ export const store = configureStore({
   reducer: {
     post: postReducer,
   },
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });

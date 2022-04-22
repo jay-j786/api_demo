@@ -1,36 +1,92 @@
-import {createSlice} from '@reduxjs/toolkit';
+import {createAsyncThunk, createSlice, current} from '@reduxjs/toolkit';
+import {getPosts, setPosts} from './../../utils/services';
+const initialState = {
+  postList: [],
+  postListLoading: false,
+};
 
-let DATA = [];
+export const fetchPostData = createAsyncThunk(
+  'posts/fetchPostData',
+  async (providers, {rejectWithValue}) => {
+    try {
+      return await getPosts();
+    } catch (err) {
+      return rejectWithValue(err.response);
+    }
+  },
+);
+
+// export const makePostData = createAsyncThunk(
+//   'posts/makePostData',
+//   async (providers, {rejectWithValue}) => {
+//     try {
+//       return await makePostData(body);
+//     } catch (err) {
+//       return rejectWithValue(err.response);
+//     }
+//   },
+// );
+export const makePostData = createAsyncThunk(
+  'posts/makePostData',
+  async (body, {rejectWithValue}) => {
+    try {
+      console.log(body);
+      const response = await setPosts(body);
+      // console.log('response:', response);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response);
+    }
+  },
+);
 const postSlice = createSlice({
   name: 'posts',
-  initialState: {
-    posts: DATA,
-  },
+  initialState,
   reducers: {
     addContact: (state, action) => {
-      //   console.log(action.payload.data);
-      if (action.payload.data === null) {
+      if (state.post.postList === null) {
         return undefined;
-        //   } else if (action.payload.type === 'localStorage') {
-        //     state.contacts = [...state.contacts, ...action.payload.data];
-        //   } else if (action.payload.type === 'import') {
-        //     state.contacts = [...state.contacts, ...action.payload.data];
       } else {
-        state.posts = [...state.posts, action.payload];
+        state.postList = [...state.postList, action.payload];
       }
     },
-    // deleteContact: (state, action) => {
-    //   state.contacts = state.contacts.filter(
-    //     element => element.userId !== action.payload,
-    //   );
-    // },
-    // updateContact: (state, action) => {
-    //   state.contacts = state.contacts.map(el =>
-    //     el.userId === action.payload.id ? action.payload.data : el,
-    //   );
-    // },
+  },
+  extraReducers: {
+    [fetchPostData.fulfilled]: (state, action) => {
+      // console.log(...state.postList);
+      state.postList = action.payload?.data;
+      state.postListLoading = false;
+    },
+    [fetchPostData.pending]: state => {
+      state.postListLoading = true;
+    },
+    [fetchPostData.rejected]: state => {
+      state.postListLoading = false;
+    },
+    [makePostData.fulfilled]: (state, action) => {
+      const stateClone = current(state).postList;
+      if (action.payload?.status === 201) {
+        // console.log('Currentstate', stateClone);
+        // console.log('actionState', action.payload.data);
+        // console.log('state', current(state.postList));
+        state.postList = [...stateClone, action.payload?.data];
+      }
+      state.postListLoading = false;
+    },
+    [makePostData.pending]: state => {
+      state.postListLoading = true;
+    },
+    [makePostData.rejected]: state => {
+      state.postListLoading = false;
+    },
   },
 });
 
-export const {addPosts} = postSlice.actions;
+export const postSelector = state => {
+  return state.post;
+};
+
+export const lengthSelector = state => {
+  return state.post.postList.length;
+};
 export default postSlice.reducer;
